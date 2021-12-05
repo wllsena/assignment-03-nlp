@@ -1,0 +1,280 @@
+#+title: Assignment 03 - extração de informações do DHBB 
+
+* Introdução
+
+  Após estudar os capítulos 12-14 de [[https://web.stanford.edu/~jurafsky/slp3/][Speech and Language Processing]]
+  aprendemos uma tarefa importancia de processamento de texto: análise
+  sintática.
+
+  Vale lembrar que algumas biblitoecas, podem realizar várias de forma
+  conjunta, [[https://ufal.mff.cuni.cz/udpipe][UDPipe]], por exemplo, pode fazer a tokenização,
+  segmentação, POS tagging e análise sintática.  Também vale recordar
+  que a estrutura sintática das sentenças geralmente é feita em algum
+  dos dois grandes paradigmas: [[https://en.wikipedia.org/wiki/Dependency_grammar][dependências]] ou [[https://en.wikipedia.org/wiki/Phrase_structure_grammar][constituintes]].
+
+  A análise sintática gera uma estrutura (árvore de dependencias ou
+  estrutura de constituintes) muito útil para algumas tarefas de
+  NLP. Neste trabalho vamos aplicar árvores de dependencias para a
+  tarefa de extração de informações do DHBB. Mas para isso, você
+  deverá se familiarizar com algum parser de dependencias estatístico
+  como:
+
+  - https://lindat.mff.cuni.cz/services/udpipe/info.php
+  - https://spacy.io/api/dependencyparser, veja https://spacy.io/models/pt 
+  - https://stanfordnlp.github.io/stanza/depparse.html
+
+  Obviamente, nada impede que você descubra e se apaixone por algum
+  outro sistema que não esteja na lista acima, neste caso fale com o
+  professor e/ou monitor antes de usar algum sistema diferente destes!
+
+  Recomendamos usar o UDPipe 1.2 via terminal, no [[https://github.com/ufal/udpipe/releases/tag/v1.2.0/][udpipe-1.2.0-bin.zip]]
+  existem binários para Windows, Linux e MacOS.  O [[https://ufal.mff.cuni.cz/udpipe/1/users-manual][manual]] do sistema
+  contém instruções de uso com um modelo já existente e como
+  treinar. Modelos pré-treinados para o Português estão [[https://lindat.mff.cuni.cz/repository/xmlui/handle/11234/1-1659][aqui]].
+
+  Todos estes sistemas acima, para processar textos em Português,
+  aprenderam um 'modelo' usando o [[https://github.com/universaldependencies/UD_Portuguese-Bosque][corpus Bosque]]. Este modelo de algum
+  forma tenta capturar o que seria a gramática do Português mas,
+  obviamente, nenhum corpus tem todas as sentenças possíveis de uma
+  lingua, logo nenhuma ferramenta e nenhum dos seus modelos será
+  perfeito. Em especial, o corpus Bosque é pequeno, contém apenas 9
+  mil sentenças, e é basicamente composto por matérias públicadas a
+  mais de 15 anos nos jornais Folha de São Paulo e Público
+  (Portugal).
+
+* DHBB
+
+  O [[https://cpdoc.fgv.br/acervo/dhbb][DHBB]] é uma espécie de enciclópedia do CPDOC com textos sobre a
+  política brasileira desde 1930. Em particular, contém verbetes sobre
+  políticos ou temas (partidos, leis, períodos). Os textos completos
+  encontram-se em https://github.com/cpdoc/dhbb/ e os textos com algum
+  pré-processamento (separação metadados e organização de um parágrafo
+  por linha, arquivos com uma sentença por linha etc) também podem ser
+  obtidos em [[http://github.com/cpdoc/dhbb-nlp]].
+
+  Durante os ciclos de atualização e revisão do DHBB, os
+  contribuidores, editores dos verbetes, foram muitos, mas em geral, o
+  formato dos verbetes sobre políticos (biográficos) segue um certo
+  padrão. Em especial, no primeiro parágrafo sempre temos a
+  apresentação do verbetado, seu nome completo, onde nasceu e data de
+  nascimento e nome dos pais.
+
+* Tarefa
+
+  Sua tarefa então será:
+
+  1. escolher um sistema, aprender a instalar e aprender a usar o
+     modelo pré-existente para Português. A única restrição importante
+     é que o sistema deve gerar arquivos de dependências em [[http://universaldependencies.org][Universal
+     Dependencies]].
+
+  2. executar o sistema em uma amostra inicial do DHBB e identificar
+     possíveis erros na análise sintática. Em geral, não esperamos que
+     os alunos reconheçam exatamente o que significa cada uma das
+     [[https://universaldependencies.org/guidelines.html][relações de dependência]] de UD, mas vimos durante o curso o
+     suficiente para uma idéia geral sobre estas árvores. Com esta
+     idéia, é fácil perceber erros graves de análise onde nós não
+     relacionados acabam sendo identificados erroneamente como
+     relacionados pelo parser.
+
+  3. Para os casos onde o parser não produzir análises corretas, (vide
+     abaixo exemplo de análise esperada), você deve tentar corrigir a
+     sentença (pode pedir ajuda ao monitor e professor via issue em
+     seu repositório) e acrescentar as sentenças corrigidas ao corpus
+     Bosque criando um Bosque apliado. Vide próxima seção.
+
+  4. Retreinar o sistema com este novo corpus.
+
+  5. Usar o sistema para fazer a análise sintática dos primeiros
+     parágrafos dos verbetes do DHBB e desenvolver alguma solução para
+     extrair das análises sináticas geradas informações dos
+     verbetados:
+
+     - nome completo
+     - lugar que nasceu
+     - data de nascimento
+     - nome do pai
+     - nome da mãe
+
+  **atenção**: a tarefa de retreinar pode durar algumas horas
+  dependendo dos parâmetros que você passar ao sistema, então não
+  deixe este projeto para o último dia da entrega!
+
+  Para a correção as análises sintáticas e extração das informações,
+  você deverá se familiarizar com o formato [[https://universaldependencies.org/format.html][CoNLL-U]]. Existem
+  bibliotecas para ler arquivos neste formato:
+
+  - https://github.com/EmilStenstrom/conllu/
+  - https://github.com/pyconll/pyconll
+  - https://hackage.haskell.org/package/hs-conllu
+
+  Uma vez que você tenha lido o formato conllu, você precisará
+  desenvolver alguma forma de extrair padrões das árvores
+  sintáticas.
+
+  A alternativa mais simples é escrever uma função que navegue pela
+  árvore sintática a partir do =root= mantendo [[https://pt.wikipedia.org/wiki/M%C3%A1quina_de_estados_finita][uma máquina de estados]]
+  a medida que atravessa as relações de dependência. Certas relações
+  poderão sinalizar uma mudança de estado e em cada estado você irá
+  fazer alguma coisa com o próximo nó lido. Esta é uma solução
+  simples, mas o código final potencialmente será super específico
+  para a tarefa.
+
+  Uma alternativa seria converter a árvore para algum formato que
+  possa ser pesquisado por uma linguagem de consulta (ou regras) que
+  permita fácil busca por padrões
+
+  Por exemplo, você pode transformar os dados em [[https://www.w3.org/TR/rdf-primer/][RDF]] (usando
+  https://github.com/acoli-repo/conll, por exemplo, ou gerando o RDF
+  manualmente a partir da estrutura da árvore com [[https://rdflib.readthedocs.io/en/stable/][RDFLib]]). Estes dados
+  poderiam então ser consultados usando [[https://www.w3.org/TR/sparql11-query/][SPARQL]] e/ou manipulados via
+  regras como as que [[https://jena.apache.org/documentation/inference/index.html#rules][Jena]] oferece. Existem outros graph databases por
+  aí.  Ou você poderia usar Prolog se a partir das árvores você
+  produzir um arquivo Prolog, pode criar regras de extração dos
+  padrões. Veja [[https://www.cs.nmsu.edu/ALP/2011/03/natural-language-processing-with-prolog-in-the-ibm-watson-system/][aqui]]. Sistemas que podem ser usados são
+  http://xsb.sourceforge.net/ ou https://www.swi-prolog.org/. Em
+  [[https://racket-lang.org][Racket]] existe o [[https://docs.racket-lang.org/datalog/][Datalog]].
+
+  O projeto deve ser feito por grupos de até 3 pessoas.
+
+
+* Correção de análises sintáticas
+
+  É recomendável que você trabalhe de forma incremental. A partir de
+  um exemplo de árvore (como abaixo) crie um código que consiga
+  extrair as informações desta árvore. Partindo disso, rode o
+  analisador sintático em uma amostra dos dados e tente usar seu
+  código para processar as árvores (arquivos conllu) produzidos. Veja
+  os erros, identifique se trata-se de erro do analisador sintático ou
+  do seu código, se for do analisador sintático, você precisará
+  adicionar a sentença corrigida ao treino do sistema, se for no seu
+  código, adapte-o. Faça isso até ter um código com um desempenho
+  aceitável.
+
+  Se você detectar erros de análise sintática (e certamente deverá
+  detectar), precisa tentar "ensinar" o analisador sintático a
+  aprender o estilo de texto do DHBB. Para isso, você deverá corrigir
+  a sentença errada e acrescentar a sentença corrigida ao conjunto de
+  dados usado para treino do parser.
+
+  Importante, a idéia não é fazer com que seu código consiga extrair
+  informações das análises sintáticas erradas mas sim identificar
+  análises estranhas, corrigi-las e tentar 'ensinar' o parser a
+  analisar sentenças parecidas. 
+
+  A correção das sentenças pode ser feita de forma colaborativa, o
+  forum do curso pode ser usado para solicitar sugestões ao professor
+  e aos colegas sobre a melhor análise para o caso.
+
+  Desta forma, o que estamos propondo é uma adaptação incremental do
+  analisador sintático ao DHBB, mediada e constantemente avaliada pela
+  tarefa de extração de informações.
+
+  Esta parte do projeto deve ser documentada na forma de um relatório:
+  quais as análises você encontrou erradas? Como corrigiu? Como a
+  performance do sistema melhorou analisando as que você tinha
+  manualmente verificado e colocado como teste?
+
+  Para o efetivo treino dos sistemas, como é feito e como ter as
+  medidas de desempenho após o treino do sistema, você deve consultar
+  a documentação do sistema que escolheu.
+  
+* Exemplo
+
+  Considere os textos:
+
+  - https://github.com/cpdoc/dhbb/blob/master/text/10.text
+  - https://github.com/cpdoc/dhbb/blob/master/text/1065.text
+  - https://github.com/cpdoc/dhbb/blob/master/text/2236.text
+  - https://github.com/cpdoc/dhbb/blob/master/text/626.text
+
+  Todos verbetes ([[https://github.com/cpdoc/dhbb/blob/master/text/2236.text#L3][biográficos]]).
+
+  Seu código deve produzir um arquivo [[https://yaml.org/][YAML]] como o [[file:data.yaml]] neste
+  repositório. Note que em geral, as informações que procuramos
+  encontram-se na primeira sentença do primeiro parágrafo. Note que a
+  forma com as informações são descritas varia, e nome que nem sempre
+  teremos todas as informações que buscamos.
+
+  O formato YAML é facilmente lido em várias linguagens. Em Python,
+  https://pypi.org/project/ruamel.yaml/ ou o
+  https://pypi.org/project/PyYAML/; em Haskell,
+  https://hackage.haskell.org/package/yaml
+
+ 
+* Comentários
+
+  A extração de informação também pode ser feita sem a análise
+  sintática. Ferramentas como o [[https://www.ibm.com/cloud/watson-knowledge-studio][Watson Knowledge Studio]] podem ser
+  treinadas, como vimos, para reconhecer padrões em textos, isto é,
+  rotular segmentos do texto diretamente. Uma vez treinado um modelo
+  no WKS, podemos usar este modelo com o [[https://www.ibm.com/cloud/watson-natural-language-understanding][Watson NLU]] para submeter
+  textos e extrair JSON files. Ou seja, você poderia selecionar um
+  conjunto de primeiros parágrafos do DHBB, digamos uns 100, carregar
+  no WKS, treinar um modelo, fazer o deploy deste modelo para o NLU e
+  então usar o NLU para extrair padrões de todos os demais primeiros
+  parágrafos do DHBB.
+
+  Note ainda que as anotações feitas com o NLU poderiam ser usadas
+  para sinalizar possíveis análises sintáticas erradas, acelerando o
+  processo de revisão das árvores sintáticas... uma tarefa ajudando
+  outra tarefa.
+
+  Você tem total liberdade para experimentar o uso destas ferramentas
+  da IBM Cloud, a conta gratuita deve dar direito de usar as
+  ferramentas. Mas no projeto, estamos interesados na abordagem
+  'linguisticamente motivada', no uso das árvores de dependencias e
+  dos parsers estatísticos, então de alguma forma você deve usar algum
+  parser estatístico.
+
+  Existem várias ferramentas disponíveis, você tem liberdade para
+  experimentar alternativas desde que atinga os objetivos principais
+  do projeto: extração das informações e a experiência de corrigir
+  sentenças e retreinar um parser. A própria NLTK parece ter algum
+  suporte para trabalhar com [[http://www.nltk.org/howto/dependency.html][dependências]].
+
+  Neste projeto, na maioria dos casos, a primeira sentença de cada
+  verbete conterá as informações que buscamos. Obviamente, as
+  primeiras sentenças variam muito, mas em geral, são parecidas com o
+  exemplo abaixo, acompanhado de sua análise sintática de forma
+  gráfica.
+
+  #+begin_example
+    1> «Armando Abílio Vieira» nasceu em Itaporanga (PB) no dia 29 de
+    dezembro de 1944, filho de Argemiro Abílio de Sousa e de Luísa
+    Bronzeado Vieira.
+
+    ─┮  
+     │                                 ╭─╼ « PUNCT punct 1 2  
+     │ ╭───────────────────────────────┾ Armando PROPN nsubj 2 6  
+     │ │                               ├─╼ Abílio PROPN flat:name 3 2  
+     │ │                               ├─╼ Vieira PROPN flat:name 4 2  
+     │ │                               ├─╼ » PUNCT punct 5 2  
+     ╰─┾ nasceu VERB root 6 0          │ 
+       │ ╭─╼ em ADP case 7 8           │ 
+       ├─┾ Itaporanga PROPN obl 8 6    │ 
+       │ │ ╭─╼ ( PUNCT punct 9 10      │ 
+       │ ╰─┾ PB PROPN appos 10 8       │ 
+       │   ╰─╼ ) PUNCT punct 11 10     │ 
+       │ ╭─╼ em ADP case 12 14         │ 
+       │ ├─╼ o DET det 13 14           │ 
+       ├─┾ dia NOUN obl 14 6           │ 
+       │ ├─╼ 29 NUM nummod 15 14       │ 
+       │ │ ╭─╼ de ADP case 16 17       │ 
+       │ ╰─┾ dezembro NOUN nmod 17 14  │ 
+       │   │ ╭─╼ de ADP case 18 19     │ 
+       │   ╰─┶ 1944 NUM nmod 19 17     │ 
+       │                               │ ╭─╼ , PUNCT punct 20 21  
+       │                               ╰─┾ filho NOUN acl 21 2  
+       │                                 │ ╭─╼ de ADP case 22 23  
+       │                                 ╰─┾ Argemiro PROPN nmod 23 21  
+       │                                   ├─╼ Abílio PROPN flat:name 24 23  
+       │                                   │ ╭─╼ de ADP case 25 26  
+       │                                   ├─┶ Sousa PROPN flat:name 26 23  
+       │                                   │ ╭─╼ e CCONJ cc 27 29  
+       │                                   │ ├─╼ de ADP case 28 29  
+       │                                   ╰─┾ Luísa PROPN conj 29 23  
+       │                                     ├─╼ Bronzeado PROPN flat:name 30 29  
+       │                                     ╰─╼ Vieira PROPN flat:name 31 29  
+       ╰─╼ . PUNCT punct 32 6  
+  #+end_example
